@@ -15,7 +15,7 @@ export default function CompanyMaster() {
     try {
       setLoading(true);
       const response = await axios.get(API.GetAllCompanies);
-      
+
       if (response.status === 200) {
         setCompanyList(response.data.data);
       } else {
@@ -32,9 +32,9 @@ export default function CompanyMaster() {
     try {
       setIsSaving(true);
       const url = API.AddCompany;
-      const method ='post';
+      const method = 'post';
       // console.log(`DataAAAAAAAAAAAAAAAAA:`,selectedCompany);
-// console.log(`URLLLLLLLLLL`,url)
+      // console.log(`URLLLLLLLLLL`,url)
       const response = await axios({
         method,
         url,
@@ -80,21 +80,22 @@ export default function CompanyMaster() {
       </TouchableOpacity>
 
       {/* <Text style={styles.header}>Company Details</Text> */}
-      
+
       {loading ? (
         <ActivityIndicator size="large" color="#6200EE" />
       ) : (
         companyList.length > 0 ? (
-          <FlatList style={{marginBottom:50}}
+          <FlatList style={{ marginBottom: 50 }}
             data={companyList}
             keyExtractor={(item, index) => index.toString()}
             showsVerticalScrollIndicator={false}
             renderItem={({ item, index }) => (
               <TouchableOpacity style={styles.companyItem} onPress={() => openModalToEdit(index)}>
-                <Text style={styles.companyText}>Company: {item.CompanyName}</Text>
+                <Text style={styles.companyText}>🏢 Company: {item.CompanyName}</Text>
                 <Text style={styles.companyText}>📧 Email: {item.Email}</Text>
                 <Text style={styles.companyText}>📞 Phone: {item.Phone}</Text>
                 <Text style={styles.companyText}>🏠 Address: {item.Address}</Text>
+
               </TouchableOpacity>
             )}
           />
@@ -102,7 +103,7 @@ export default function CompanyMaster() {
           <Text style={styles.noDataText}>No companies available. Click "Add Company" to add one.</Text>
         )
       )}
-      
+
       {/* Modal for adding/editing company */}
       <Modal
         animationType="slide"
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginTop: 5,
     fontSize: 16,
-    color:'#000'
+    color: '#000'
   },
   modalButtons: {
     flexDirection: 'row',
