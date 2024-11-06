@@ -96,7 +96,7 @@ export default function CompanyMaster() {
         <Text style={styles.label}>Company Name</Text>
         <TextInput
           style={styles.input}
-          value={selectedCompany.CompanyName}
+          value={selectedCompany ?selectedCompany.CompanyName:''}
           onChangeText={(text) => setSelectedCompany({ ...selectedCompany, CompanyName: text })}
         />
       </View>
