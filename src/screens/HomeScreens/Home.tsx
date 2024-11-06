@@ -1,73 +1,37 @@
-import {FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import React from 'react';
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from 'react-native';
+import React, { useEffect, useState } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
+import API from '../../global/API'; // Correctly imported API endpoints
 
 export default function Home({navigation}) {
-  const Data = [
-    {
-      id: '1',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-    {
-      id: '2',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-    {
-      id: '3',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-    {
-      id: '4',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-    {
-      id: '5',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-    {
-      id: '6',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-    {
-      id: '7',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-    {
-      id: '8',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-    {
-      id: '9',
-      empName: 'Sonu Rajbhar',
-      absent: '4',
-      present: '6',
-      payment: '10000',
-    },
-  ];
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(API.GetAllEmployee);
+      const result = await response.json();
+      console.log(result);
+      setData(result.data); // Accessing `data` array from the API response
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const EmployeeCard = ({item}) => (
     <LinearGradient
@@ -80,27 +44,44 @@ export default function Home({navigation}) {
         onPress={() => {
           navigation.navigate('Calender', {item});
         }}>
-        <Text style={styles.empName}>{item.empName}</Text>
+        <Text style={styles.empName}>{`${item.FirstName} ${item.LastName}`}</Text>
         <View style={styles.detailsContainer}>
           <Text style={styles.detailText}>
             🛑 Absent:{' '}
-            <Text style={styles.detailNumber}>{item.absent} days</Text>
+            <Text style={styles.detailNumber}>{item.absent ?? '0'} days</Text>
           </Text>
           <Text style={styles.detailText}>
             ✅ Present:{' '}
-            <Text style={styles.detailNumber}>{item.present} days</Text>
+            <Text style={styles.detailNumber}>{item.present ?? '0'} days</Text>
           </Text>
-          <Text style={styles.paymentText}>💰 Payment: ₹{item.payment}</Text>
+          <Text style={styles.paymentText}>💰 Payment: ₹{item.payment ?? '0'}</Text>
         </View>
       </TouchableOpacity>
     </LinearGradient>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#FFD700" />
+        <Text style={styles.loaderText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
-        data={Data}
-        keyExtractor={item => item?.id}
+        data={data}
+        keyExtractor={item => item._id}
         renderItem={EmployeeCard}
         showsVerticalScrollIndicator={false}
       />
@@ -113,6 +94,25 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     backgroundColor: '#0D0D0D',
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loaderText: {
+    marginTop: 10,
+    fontSize: 18,
+    color: '#FFD700',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 18,
+    color: 'red',
   },
   cardContainer: {
     borderRadius: 20,
