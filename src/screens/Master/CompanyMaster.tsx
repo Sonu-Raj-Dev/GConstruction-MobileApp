@@ -1,47 +1,71 @@
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, FlatList, Modal, ActivityIndicator } from 'react-native';
+import axios from 'axios';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Modal, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import API from '../../global/API';
 
 export default function CompanyMaster() {
   const [companyList, setCompanyList] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [loading, setLoading] = useState(true); // State for loading indicator
-  const [selectedCompany, setSelectedCompany] = useState(null); // State for selected company
+  const [loading, setLoading] = useState(true);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch companies from API
   const fetchCompanies = async () => {
     try {
-      setLoading(true); // Show loading indicator
-      const response = await fetch(API.GetAllCompanies);
-      const data = await response.json();
-     
-      if (response.ok) {
-        console.log(data.data);
-        setCompanyList(data.data);
-        console.log(companyList);
+      setLoading(true);
+      const response = await axios.get(API.GetAllCompanies);
+      
+      if (response.status === 200) {
+        setCompanyList(response.data.data);
       } else {
-        console.error('Error fetching companies:', data.message || 'Unknown error');
+        console.error('Error fetching companies:', response.data.message || 'Unknown error');
       }
     } catch (error) {
       console.error('Error fetching companies:', error);
     } finally {
-      setLoading(false); // Hide loading indicator
+      setLoading(false);
     }
   };
 
-  // Open modal to edit the selected company
-  const openModalToEdit = (index) => {
-    const companyToEdit = companyList[index];  // Get the company data for editing
-    setSelectedCompany(companyToEdit); // Update the selected company state
-    console.log(`tttttttttttttttttttttt`,selectedCompany);
-    
-    console.log(companyToEdit);
-    
-    setIsModalVisible(true); // Open the modal
-  };
-  
+  const saveCompany = async () => {
+    try {
+      setIsSaving(true);
+      const url = API.AddCompany;
+      const method ='post';
+      // console.log(`DataAAAAAAAAAAAAAAAAA:`,selectedCompany);
+// console.log(`URLLLLLLLLLL`,url)
+      const response = await axios({
+        method,
+        url,
+        headers: { 'Content-Type': 'application/json' },
+        data: selectedCompany,
+      });
 
-  // Use useEffect to fetch companies when component mounts
+      if (response.status === 200 || response.status === 201) {
+        fetchCompanies(); // Refresh list after save
+        setIsModalVisible(false);
+        setSelectedCompany(null); // Clear selected company
+      } else {
+        console.error('Error saving company:', response.data.message || 'Unknown error');
+      }
+    } catch (error) {
+      if (error.response) {
+        console.error('Error saving company:', error.response.data || error.message);
+      } else {
+        console.error('Error saving company:', error.message);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openModalToEdit = (index) => {
+    const companyToEdit = companyList[index];
+    setSelectedCompany(companyToEdit);
+    setIsModalVisible(true);
+  };
+
   useEffect(() => {
     fetchCompanies();
   }, []);
@@ -49,24 +73,24 @@ export default function CompanyMaster() {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.addButton} onPress={() => {
-        setSelectedCompany(null); // Clear selection for new entry
+        setSelectedCompany(null);
         setIsModalVisible(true);
       }}>
         <Text style={styles.addButtonText}>Add Company</Text>
       </TouchableOpacity>
 
-      <Text style={styles.header}>Company Details</Text>
+      {/* <Text style={styles.header}>Company Details</Text> */}
       
       {loading ? (
         <ActivityIndicator size="large" color="#6200EE" />
       ) : (
         companyList.length > 0 ? (
-          <FlatList
+          <FlatList style={{marginBottom:50}}
             data={companyList}
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item, index }) => (
               <TouchableOpacity style={styles.companyItem} onPress={() => openModalToEdit(index)}>
-                <Text style={styles.companyText}>Name: {item.CompanyName}</Text>
+                <Text style={styles.companyText}>Company: {item.CompanyName}</Text>
                 <Text style={styles.companyText}>📧 Email: {item.Email}</Text>
                 <Text style={styles.companyText}>📞 Phone: {item.Phone}</Text>
                 <Text style={styles.companyText}>🏠 Address: {item.Address}</Text>
@@ -80,80 +104,77 @@ export default function CompanyMaster() {
       
       {/* Modal for adding/editing company */}
       <Modal
-  animationType="slide"
-  transparent={true}
-  visible={isModalVisible}
-  onRequestClose={() => setIsModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContainer}>
-      <Text style={styles.formHeader}>
-        {selectedCompany ? 'Edit Company' : 'Add Company'}
-      </Text>
+        animationType="slide"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.formHeader}>
+              {selectedCompany ? 'Edit Company' : 'Add Company'}
+            </Text>
 
-      {/* Company Name Input */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Company Name</Text>
-        <TextInput
-          style={styles.input}
-          value={selectedCompany ?selectedCompany.CompanyName:''}
-          onChangeText={(text) => setSelectedCompany({ ...selectedCompany, CompanyName: text })}
-        />
-      </View>
+            {/* Company Name Input */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Company Name</Text>
+              <TextInput
+                style={styles.input}
+                value={selectedCompany ? selectedCompany.CompanyName : ""}
+                onChangeText={(text) => setSelectedCompany({ ...selectedCompany, CompanyName: text })}
+              />
+            </View>
 
-      {/* Email Input */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          value={selectedCompany ? selectedCompany.Email : ''}
-          onChangeText={(text) => setSelectedCompany({ ...selectedCompany, Email: text })}
-        />
-      </View>
+            {/* Email Input */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={selectedCompany ? selectedCompany.Email : ''}
+                onChangeText={(text) => setSelectedCompany({ ...selectedCompany, Email: text })}
+              />
+            </View>
 
-      {/* Phone Input */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Phone</Text>
-        <TextInput
-          style={styles.input}
-          value={selectedCompany ? selectedCompany.Phone : ''}
-          onChangeText={(text) => setSelectedCompany({ ...selectedCompany, Phone: text })}
-        />
-      </View>
+            {/* Phone Input */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Phone</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType='numeric'
+                value={selectedCompany ? selectedCompany.Phone : ''}
+                onChangeText={(text) => setSelectedCompany({ ...selectedCompany, Phone: text })}
+              />
+            </View>
 
-      {/* Address Input */}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Address</Text>
-        <TextInput
-          style={styles.input}
-          value={selectedCompany ? selectedCompany.Address : ''}
-          onChangeText={(text) => setSelectedCompany({ ...selectedCompany, Address: text })}
-        />
-      </View>
+            {/* Address Input */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Address</Text>
+              <TextInput
+                style={styles.input}
+                value={selectedCompany ? selectedCompany.Address : ''}
+                onChangeText={(text) => setSelectedCompany({ ...selectedCompany, Address: text })}
+              />
+            </View>
 
-      <View style={styles.modalButtons}>
-        <TouchableOpacity style={styles.cancelButton} onPress={() => setIsModalVisible(false)}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            // Handle save logic (add or update company here)
-            setIsModalVisible(false);
-          }}
-        >
-          <Text style={styles.buttonText}>
-            {selectedCompany ? 'Save Changes' : 'Add Company'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-</Modal>
-
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.button} onPress={saveCompany} disabled={isSaving}>
+                <Text style={styles.buttonText}>
+                  {isSaving ? 'Saving...' : selectedCompany ? 'Save Changes' : 'Add Company'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
+
+// (StyleSheet remains unchanged)
+
 
 const styles = StyleSheet.create({
   container: {
