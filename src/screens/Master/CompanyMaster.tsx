@@ -88,6 +88,7 @@ export default function CompanyMaster() {
           <FlatList style={{marginBottom:50}}
             data={companyList}
             keyExtractor={(item, index) => index.toString()}
+            showsVerticalScrollIndicator={false}
             renderItem={({ item, index }) => (
               <TouchableOpacity style={styles.companyItem} onPress={() => openModalToEdit(index)}>
                 <Text style={styles.companyText}>Company: {item.CompanyName}</Text>
