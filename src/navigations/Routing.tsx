@@ -1,7 +1,7 @@
 import {StyleSheet, Text, View} from 'react-native';
 import React from 'react';
 import {createDrawerNavigator} from '@react-navigation/drawer';
-import {ContsctScreens, HomeScreens} from './StackNavigator';
+import {ContsctScreens, HomeScreens,CompanyMasterDetails,EmployeeDetails} from './StackNavigator';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Home from '../screens/HomeScreens/Home';
 import {NavigationContainer} from '@react-navigation/native';
@@ -13,6 +13,9 @@ export default function Routing() {
     <Drawer.Navigator>
       <Drawer.Screen name="Home" component={HomeScreens} />
       <Drawer.Screen name="Contact" component={ContsctScreens} />
+      <Drawer.Screen name="Company Master" component={CompanyMasterDetails} />
+      <Drawer.Screen name="Employee Master" component={EmployeeDetails} />
+      
     </Drawer.Navigator>
   );
 }
