@@ -5,23 +5,38 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
-import API from '../../global/API'; // Correctly imported API endpoints
+import API from '../../global/API';
+import { Picker } from '@react-native-picker/picker';
+import axios from 'axios';
 
-export default function Home({navigation}) {
+export default function Home({ navigation }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [companyList, setCompanyList] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState();
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
 
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      fetchData();  // Refresh data when pulled
+    }, 2000);
+  }, []);
+
+  // Fetch dashboard data (employees)
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(API.GetAllEmployee);
+      const response = await fetch(API.GetDashBoardData);
       const result = await response.json();
-      console.log(result);
-      setData(result.data); // Accessing `data` array from the API response
+      setData(result.data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -29,22 +44,61 @@ export default function Home({navigation}) {
     }
   };
 
+  // Fetch company list
+  const fetchCompanies = async () => {
+    try {
+      const response = await axios.get(API.GetAllCompanies);
+      if (response.status === 200) {
+        setCompanyList(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchCompanies();
   }, []);
 
-  const EmployeeCard = ({item}) => (
+  // Filter employees by selected company
+  useEffect(() => {
+    if (selectedCompany) {
+      let filtered = []; 
+      console.log(`selected company :`,selectedCompany);
+      if(selectedCompany=="0")
+      {
+         filtered = data;
+      }
+      else
+     {
+       filtered = data.filter(
+        (employee) => employee.CompanyId === selectedCompany
+      );
+     }
+      console.log(`filtered data:`,filtered);
+      
+      setFilteredEmployees(filtered);
+    } else {
+      setFilteredEmployees(data);
+    }
+  }, [selectedCompany, data]);
+
+  // Render employee cards
+  const EmployeeCard = ({ item }) => (
     <LinearGradient
       colors={['#1D1F33', '#13131A']}
-      start={{x: 0, y: 0}}
-      end={{x: 1, y: 1}}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.cardContainer}>
       <TouchableOpacity
         style={styles.cardContent}
         onPress={() => {
-          navigation.navigate('Calender', {item});
+          navigation.navigate('Calender', { item });
         }}>
-        <Text style={styles.empName}>{`${item.FirstName} ${item.LastName}`}</Text>
+        <Text style={styles.empName}>
+          {`${item?.FirstName ?? ''} ${item?.LastName ?? ''}`}
+        </Text>
         <View style={styles.detailsContainer}>
           <Text style={styles.detailText}>
             🛑 Absent:{' '}
@@ -79,11 +133,28 @@ export default function Home({navigation}) {
 
   return (
     <View style={styles.container}>
+      {/* Company Dropdown */}
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedCompany}
+          onValueChange={(itemValue) => setSelectedCompany(itemValue)}
+          style={styles.picker}>
+          <Picker.Item label="Select Company" value="0" />
+          {companyList.map((company) => (
+            <Picker.Item key={company._id} label={company.CompanyName} value={company._id} />
+          ))}
+        </Picker>
+      </View>
+
+      {/* Employee List */}
       <FlatList
-        data={data}
-        keyExtractor={item => item._id}
-        renderItem={EmployeeCard}
+        data={filteredEmployees}
+        keyExtractor={(item) => item._id.toString()}
+        renderItem={({ item }) => <EmployeeCard item={item} />}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </View>
   );
@@ -114,12 +185,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: 'red',
   },
+  pickerContainer: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 2,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+  },
+  picker: {
+    fontSize: 16,
+    color: '#000',
+  },
   cardContainer: {
     borderRadius: 20,
     marginBottom: 20,
     elevation: 6,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 5},
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },

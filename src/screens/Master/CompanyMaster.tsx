@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Modal, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Modal, ActivityIndicator, RefreshControl, Switch } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import API from '../../global/API';
 
@@ -9,7 +9,14 @@ export default function CompanyMaster() {
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
 
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  }, []);
   // Fetch companies from API
   const fetchCompanies = async () => {
     try {
@@ -89,13 +96,18 @@ export default function CompanyMaster() {
             data={companyList}
             keyExtractor={(item, index) => index.toString()}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
             renderItem={({ item, index }) => (
               <TouchableOpacity style={styles.companyItem} onPress={() => openModalToEdit(index)}>
                 <Text style={styles.companyText}>🏢 Company: {item.CompanyName}</Text>
                 <Text style={styles.companyText}>📧 Email: {item.Email}</Text>
                 <Text style={styles.companyText}>📞 Phone: {item.Phone}</Text>
                 <Text style={styles.companyText}>🏠 Address: {item.Address}</Text>
-
+                <Text style={styles.companyText}>
+                {item.IsActive ? "🟢 Active" : "🔴 Inactive"}
+              </Text>
               </TouchableOpacity>
             )}
           />
@@ -157,7 +169,15 @@ export default function CompanyMaster() {
                 onChangeText={(text) => setSelectedCompany({ ...selectedCompany, Address: text })}
               />
             </View>
-
+            <View style={styles.formGroup}>
+              {/* <Text style={styles.label}>IsActive</Text> */}
+              <Switch
+                value={selectedCompany?.IsActive ?? false}
+                onValueChange={(value) =>
+                  setSelectedCompany({ ...selectedCompany, IsActive: value })
+                }
+              />
+            </View>
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setIsModalVisible(false)}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
