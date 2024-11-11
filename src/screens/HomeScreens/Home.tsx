@@ -19,28 +19,36 @@ export default function Home({ navigation }) {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [companyList, setCompanyList] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState();
+  const [selectedCompany, setSelectedCompany] = useState('0');
   const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [attendanceData, setAttendanceData] = useState([]);  // Initialize as an empty array
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-      fetchData();  // Refresh data when pulled
-    }, 2000);
+    fetchData(); // Refresh data when pulled
   }, []);
 
-  // Fetch dashboard data (employees)
+  // Fetch dashboard data (employees and attendance)
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(API.GetDashBoardData);
-      const result = await response.json();
-      setData(result.data);
+      const response = await axios.get(API.GetDashBoardData);
+
+      // Log full response to verify the structure
+      console.log('API Response:', response.data);
+
+      // Ensure the data structure matches the expected format
+      if (response.data?.data?.[0]?.employees && response.data?.data?.[0]?.attendanceRecords) {
+        setData(response.data.data[0].employees);
+        setAttendanceData(response.data.data[0].attendanceRecords);
+      } else {
+        setError("Invalid data structure");
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -63,56 +71,69 @@ export default function Home({ navigation }) {
 
   // Filter employees by selected company
   useEffect(() => {
-    if (selectedCompany) {
-      let filtered = []; 
-      console.log(`selected company :`,selectedCompany);
-      if(selectedCompany=="0")
-      {
-         filtered = data;
-      }
-      else
-     {
-       filtered = data.filter(
+    if (selectedCompany === '0') {
+      setFilteredEmployees(data); // Show all employees when no company selected
+    } else {
+      const filtered = data.filter(
         (employee) => employee.CompanyId === selectedCompany
       );
-     }
-      console.log(`filtered data:`,filtered);
-      
       setFilteredEmployees(filtered);
-    } else {
-      setFilteredEmployees(data);
     }
   }, [selectedCompany, data]);
 
+  const findAttendanceForEmployee = (employeeId) => {
+    console.log("EmployeeID:", employeeId);
+    console.log("AttendanceData:", attendanceData);
+  
+    // Check if attendanceData is an object and has the correct properties
+    if (attendanceData && typeof attendanceData === 'object' && attendanceData.EmployeeId === employeeId) {
+      console.log("Found attendance data for employee:", attendanceData);
+      return attendanceData; // Return the attendance object for the employee
+    } else {
+      console.log("No attendance data found for this employee or invalid data format");
+      return null; // Return null if attendanceData doesn't match or is invalid
+    }
+  };
+  
   // Render employee cards
-  const EmployeeCard = ({ item }) => (
-    <LinearGradient
-      colors={['#1D1F33', '#13131A']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.cardContainer}>
-      <TouchableOpacity
-        style={styles.cardContent}
-        onPress={() => {
-          navigation.navigate('Calender', { item });
-        }}>
-        <Text style={styles.empName}>
-          {`${item?.FirstName ?? ''} ${item?.LastName ?? ''}`}
-        </Text>
-        <View style={styles.detailsContainer}>
-          <Text style={styles.detailText}>
-            🛑 Absent:{' '}
-            <Text style={styles.detailNumber}>{item.absent ?? '0'} days</Text>
+  const EmployeeCard = ({ item }) => {
+    const attendance = findAttendanceForEmployee(item._id);
+console.log("Attendanceeeeee",attendance);
+    return (
+      <LinearGradient
+        colors={['#1D1F33', '#13131A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cardContainer}>
+        <TouchableOpacity
+          style={styles.cardContent}
+          onPress={() => {
+            navigation.navigate('Calender', { item });
+          }}>
+          <Text style={styles.empName}>
+            {`${item?.FirstName ?? ''} ${item?.LastName ?? ''}`}
           </Text>
-          <Text style={styles.detailText}>
-            ✅ Present:{' '}
-            <Text style={styles.detailNumber}>{item.present ?? '0'} days</Text>
-          </Text>
-          <Text style={styles.paymentText}>💰 Payment: ₹{item.payment ?? '0'}</Text>
-        </View>
-      </TouchableOpacity>
-    </LinearGradient>
-  );
+          <View style={styles.detailsContainer}>
+            <Text style={styles.detailText}>
+              🛑 Absent:{' '}
+              <Text style={styles.detailNumber}>
+                {attendance?.totalAbsentDays ?? '0'} days
+              </Text>
+            </Text>
+            <Text style={styles.detailText}>
+              ✅ Present:{' '}
+              <Text style={styles.detailNumber}>
+                {attendance?.totalPresentDays ?? '0'} days
+              </Text>
+            </Text>
+            <Text style={styles.paymentText}>
+              💰 Payment: ₹{attendance?.totalPayment ?? '0'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </LinearGradient>
+    );
+  };
 
   if (loading) {
     return (
@@ -141,7 +162,11 @@ export default function Home({ navigation }) {
           style={styles.picker}>
           <Picker.Item label="Select Company" value="0" />
           {companyList.map((company) => (
-            <Picker.Item key={company._id} label={company.CompanyName} value={company._id} />
+            <Picker.Item
+              key={company._id}
+              label={company.CompanyName}
+              value={company._id}
+            />
           ))}
         </Picker>
       </View>
@@ -149,7 +174,7 @@ export default function Home({ navigation }) {
       {/* Employee List */}
       <FlatList
         data={filteredEmployees}
-        keyExtractor={(item) => item._id.toString()}
+        keyExtractor={(item) => item._id}
         renderItem={({ item }) => <EmployeeCard item={item} />}
         showsVerticalScrollIndicator={false}
         refreshControl={

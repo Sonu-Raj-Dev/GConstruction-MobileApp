@@ -13,7 +13,7 @@ export default function CalendarView({ route }) {
   const [isPresent, setIsPresent] = useState(true); // Switch for Present/Absent
   const [modalVisible, setModalVisible] = useState(false);
   const [attendanceData, setAttendanceData] = useState([]);
-
+const[attendanceId,setAttendanceId]=useState('');
   useEffect(() => {
     fetchAttendanceData();
   }, []);
@@ -24,7 +24,9 @@ export default function CalendarView({ route }) {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      console.log('Response:', response.data);  // Log the API response
+      console.log('EmployeeDattttt',employeeData);
+      
+      console.log('Response:', response.data.data);  // Log the API response
       if (Array.isArray(response.data.data)) {
         setAttendanceData(response.data.data);
       } else {
@@ -60,17 +62,22 @@ export default function CalendarView({ route }) {
 
     // Check if the selected day already has attendance data
     const attendanceRecord = attendanceData.find((record) => record.AttendanceDate === selectedDate);
+console.log("attendanceRecord",attendanceRecord);
 
     if (attendanceRecord) {
       // If there's existing data, pre-fill the modal with this data for editing
       setAmount(attendanceRecord.Amount);
       setRemark(attendanceRecord.Remark);
       setIsPresent(attendanceRecord.IsPresent);
+      setAttendanceId(attendanceRecord._id); 
+      console.log("attendanceRecord._id",attendanceRecord._id);
+      
     } else {
       // Clear the form for a new entry
       setAmount('');
       setRemark('');
       setIsPresent(true);
+      setAttendanceId(null); 
     }
 
     setSelectedDate(selectedDate);
@@ -78,53 +85,77 @@ export default function CalendarView({ route }) {
   };
 
   const handleSubmit = async () => {
-    if (amount && remark) {
-      try {
-        const existingRecordIndex = attendanceData.findIndex((record) => record.AttendanceDate === selectedDate);
+    try {
+      console.log("attendanceId",attendanceId);
+      
+      // If attendance_id exists, update the record; otherwise, create a new record
+      if (attendanceId) {
+        console.log("attendanceId",attendanceId);
         
-        if (existingRecordIndex > -1) {
-          // Update the existing record
-          const updatedData = [...attendanceData];
-          updatedData[existingRecordIndex] = {
-            AttendanceDate: selectedDate,
-            Amount: amount,
-            Remark: remark,
-            EmployeeId: employeeData._id,
-            IsPresent: isPresent,
-          };
-
-          setAttendanceData(updatedData);
-          alert('Attendance data updated successfully!');
-        } else {
-          // Add a new record if it doesn't exist
-          const response = await axios.post(`${API.AddCalenderData}`, {
-            AttendanceDate: selectedDate,
-            Amount: amount,
-            Remark: remark,
-            EmployeeId: employeeData._id,
-            IsPresent: isPresent,
-          });
-
-          setAttendanceData((prevData) => [
-            ...prevData,
-            { AttendanceDate: selectedDate, Amount: amount, Remark: remark, IsPresent: isPresent },
-          ]);
-          alert('Attendance data added successfully!');
-        }
-
-        setModalVisible(false);
-        setAmount('');
-        setRemark('');
-        setIsPresent(true);
-        setSelectedDate(null);
-      } catch (error) {
-        console.error('Error adding/updating attendance data', error);
-        alert('Failed to submit attendance data');
+        // Update the existing attendance record
+        const updatedData = {
+          AttendanceDate: selectedDate,
+          Amount: amount,
+          Remark: remark,
+          EmployeeId: employeeData._id,
+          IsPresent: isPresent,
+          CompanyId: employeeData.CompanyId,
+          _id:attendanceId
+        };
+        console.log("attendanceId",updatedData);
+       
+        // Make an API call to update the attendance data
+        const response = await axios.post(`${API.AddCalenderData}`, {
+         // _id: attendanceId, // Send the attendance_id to update the record
+          ...updatedData,
+        });
+  
+        console.log('Update response:', response);
+  
+        // Update state with the updated data
+        const updatedAttendanceData = attendanceData.map((record) =>
+          record._id === attendanceId ? { ...record, ...updatedData } : record
+        );
+        setAttendanceData(updatedAttendanceData);
+  
+        alert('Attendance data updated successfully!');
+      } else {
+        // If no attendance_id exists, create a new record
+        const newRecord = {
+          AttendanceDate: selectedDate,
+          Amount: amount,
+          Remark: remark,
+          EmployeeId: employeeData._id,
+          IsPresent: isPresent,
+          CompanyId: employeeData.CompanyId,
+        };
+  
+        // Make an API call to add the new attendance data
+        const response = await axios.post(`${API.AddCalenderData}`, newRecord);
+        console.log('Add response:', response);
+  
+        // Add the new attendance data to the state
+        setAttendanceData((prevData) => [
+          ...prevData,
+          { ...newRecord, _id: response.data._id }, // Assuming the response contains the new ID
+        ]);
+  
+        alert('Attendance data added successfully!');
       }
-    } else {
-      alert('Please fill in both amount and remarks');
+  
+      // Reset form fields after the operation
+      setModalVisible(false);
+      setAmount('');
+      setRemark('');
+      setIsPresent(true);
+      setSelectedDate(null);
+      setAttendanceId(null); // Reset attendance_id after submitting
+    } catch (error) {
+      console.error('Error adding/updating attendance data', error);
+      alert('Failed to submit attendance data');
     }
   };
+  
 
   const currentDate = new Date().toISOString().split('T')[0];
 
@@ -205,7 +236,7 @@ export default function CalendarView({ route }) {
         ))}
       </View>
 
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+     <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add Attendance Data</Text>
