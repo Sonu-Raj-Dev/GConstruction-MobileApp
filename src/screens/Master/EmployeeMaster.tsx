@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Modal, A
 import React, { useState, useEffect } from 'react';
 import API from '../../global/API';
 import { Picker } from '@react-native-picker/picker';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function EmployeeMaster() {
   const [employeeList, setEmployeeList] = useState([]);
@@ -19,6 +20,12 @@ export default function EmployeeMaster() {
     }, 2000);
   }, []);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchCompanies();  // Re-fetch companies when the screen is focused
+      fetchEmployees();
+    }, [])
+  );
   useEffect(() => {
     fetchEmployees();
     fetchCompanies(); // Fetch companies when the component mounts
@@ -203,20 +210,25 @@ export default function EmployeeMaster() {
               />
             </View>
 
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={selectedEmployee.CompanyId || ''}  // Use CompanyId to track the selected company
-                onValueChange={(itemValue) =>
-                  setSelectedEmployee({ ...selectedEmployee, CompanyId: itemValue })  // Store the CompanyId
-                }
-                style={styles.picker}  // Apply font and padding inside Picker
-              >
-                <Picker.Item label="Select Company" value="" />
-                {companyList.map((company) => (
-                  <Picker.Item key={company._id} label={company.CompanyName} value={company._id} />  // Use _id as value
-                ))}
-              </Picker>
-            </View>
+            <View style={styles.formGroup}>
+  <Text style={styles.label}>Company</Text>
+  <View style={styles.pickerContainer}>
+    <Picker
+      selectedValue={selectedEmployee.CompanyId || ''}
+      onValueChange={(itemValue) =>
+        setSelectedEmployee({ ...selectedEmployee, CompanyId: itemValue })
+      }
+      style={styles.picker}  // Apply font and padding inside Picker
+    >
+      <Picker.Item label="Select Company" value="" />
+      {companyList.map((company) => (
+        <Picker.Item key={company._id} label={company.CompanyName} value={company._id} />
+      ))}
+    </Picker>
+  </View>
+</View>
+
+
             <View style={styles.formGroup}>
               {/* <Text style={styles.label}>IsActive</Text> */}
               <Switch
@@ -299,44 +311,48 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: '#fff',
-    padding: 20,
+    padding: 15,  // Reduced padding for a more compact layout
     borderRadius: 10,
     width: '90%',
     maxWidth: 400,
-    maxHeight: '80%',  // Ensure the modal doesn't restrict the height
-    overflow: 'visible', // Allow overflowing content to be visible
+    maxHeight: '80%',
+    overflow: 'visible',
   },
   formHeader: {
     fontSize: 22,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 10,  // Reduced margin
     color: '#333',
   },
   formGroup: {
-    marginVertical: 10,
+    marginVertical: 5,  // Reduced margin between form groups
   },
   label: {
     fontSize: 16,
     color: '#333',
+    marginBottom: 5,  // Reduced margin between label and input
   },
   input: {
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 5,
-    padding: 10,
+    padding: 8,  // Reduced padding
     fontSize: 16,
     marginTop: 5,
-    color: '#000'
+    color: '#000',
   },
-  picker: {
+  pickerContainer: {
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 5,
     padding: 5,
-    fontSize: 12,
     marginTop: 5,
-    color: '#000'
+    backgroundColor: '#fff',
+  },
+  picker: {
+    fontSize: 16,
+    color: '#000',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -366,12 +382,5 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
-  },
-  pickerContainer: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 1,
-    padding: 1, // Padding for the container
-    marginTop: 1,
   },
 });

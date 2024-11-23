@@ -12,10 +12,9 @@ export default function Routing() {
   return (
     <Drawer.Navigator>
       <Drawer.Screen name="Home" component={HomeScreens} />
-      <Drawer.Screen name="Contact" component={ContsctScreens} />
       <Drawer.Screen name="Company Master" component={CompanyMasterDetails} />
       <Drawer.Screen name="Employee Master" component={EmployeeDetails} />
-      
+      <Drawer.Screen name="Contact" component={ContsctScreens} />
     </Drawer.Navigator>
   );
 }
